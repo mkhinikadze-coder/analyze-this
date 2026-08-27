@@ -23,7 +23,7 @@
       --danger: #a33f3f;
     }
     * { box-sizing: border-box; }
-    html { background: var(--cream); }
+    html { background: var(--cream ); }
     body {
       margin: 0;
       min-width: 320px;
@@ -167,6 +167,7 @@
               <div class="progress-line"><span id="progress-label"></span><span id="progress-count"></span></div>
               <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
               <div id="history" class="history"></div>
+              <div id="question-error" class="error hidden"><span aria-hidden="true">!</span><span id="question-error-text"></span></div>
               <label class="active-label" for="answer" id="active-question"></label>
               <textarea id="answer" autocomplete="off"></textarea>
               <p class="help" id="empty-help"></p>
@@ -190,17 +191,18 @@
         </div>
       </section>
 
-      <footer class="footer"><span id="reset-notice"></span><br /><span id="free-hosting"></span></footer>
+      <footer class="footer"><span id="reset-notice"></span>  
+<span id="free-hosting"></span></footer>
     </div>
   </main>
 
   <script>
     (() => {
-      // When this file is hosted on selfanalyze-abbrdryy.manus.space, the relative endpoint works directly.
-      // If you host the file elsewhere, replace AI_ENDPOINT with the deployed site's tRPC endpoint.
-      const AI_ENDPOINT = "/api/trpc/reflection.analyze?batch=1";
+      // The endpoint below is the deployed site's public reflection-analysis route.
+      // It is intentionally server-side: no AI key is exposed in this HTML file.
+      const AI_ENDPOINT = "https://selfanalyze-abbrdryy.manus.space/api/trpc/reflection.analyze?batch=1";
       const TTL = 15 * 60 * 1000;
-      const PHI = (1 + Math.sqrt(5)) / 2;
+      const PHI = (1 + Math.sqrt(5 )) / 2;
       const qs = {
         ka: ["ვიყავი თუ არა გულწრფელი ჩემს მოქმედებებში და მოტივებში?", "ვილოცე თუ არა იმისთვის რომ გამეგო ღმერთის ნება ჩემთვის და ვითხოვე თუ არა ძალა ამის ასასრულებლად?", "ხომ არ დავაზიანე დღეს სხვა ადამიანი ან საკუთარი თავის პირდაპირ ან ირიბად?", "ხომ არ მმართვებს დღეს სხვა ადამიანს ან საკუთარ თავს ავუნაზღაურო ზიანი ჩემი მოქმედებების გამო?", "რა შეცდომა დავუშვი დღეს და რა ჯობია გავითვალისწინო მომავალში?", "ვიყავი თუ არა დღეს კეთილი საკუთარი თავის მიმართ?", "გავუკეთე თუ არა დღეს სხვა ადამიანს რაიმე კარგი მოლოდინის გარეშე?", "დავადასტურე თუ არა დღეს ჩემი ნდობა მოსიყვარულე და მზრუნველი ღმერთის მიმართ?", "რისი მადლიერი ვარ დღეს?"],
         ru: ["Был ли я честен в своих действиях и мотивах?", "Молился ли я о том, чтобы понять Божью волю для меня, и просил ли силы исполнить её?", "Не причинил ли я сегодня вред другому человеку или себе — прямо или косвенно?", "Не должен ли я сегодня возместить другому человеку или себе вред, причинённый моими действиями?", "Какую ошибку я сегодня допустил и что лучше учесть в будущем?", "Был ли я сегодня добр к себе?", "Сделал ли я сегодня что-то хорошее для другого человека без ожидания?", "Подтвердил ли я сегодня своё доверие любящему и заботливому Богу?", "За что я сегодня благодарен?"],
@@ -228,7 +230,7 @@
       function render() {
         const t = text[state.lang];
         document.documentElement.lang = state.lang;
-        setText("brand", t.brand); setText("language-label", t.language); setText("eyebrow", t.eyebrow); setText("title", t.title); setText("intro", t.intro); setText("prayer", t.prayer); setText("privacy-title", t.privacyTitle); setText("privacy", t.privacy); setText("begin", t.begin); setText("progress-label", t.progress); setText("empty-help", t.empty); setText("back", t.back); setText("fresh", t.fresh); setText("result-ai", t.ai); setText("analysis-fresh", t.fresh); setText("reset-notice", t.resetNotice); setText("free-hosting", t.freeHosting); setText("expired-title", t.expired); setText("expired-copy", t.privacy); setText("analysis-intro", t.analysisIntro); setText("error-text", t.error);
+        setText("brand", t.brand); setText("language-label", t.language); setText("question-error-text", t.error); setText("eyebrow", t.eyebrow); setText("title", t.title); setText("intro", t.intro); setText("prayer", t.prayer); setText("privacy-title", t.privacyTitle); setText("privacy", t.privacy); setText("begin", t.begin); setText("progress-label", t.progress); setText("empty-help", t.empty); setText("back", t.back); setText("fresh", t.fresh); setText("result-ai", t.ai); setText("analysis-fresh", t.fresh); setText("reset-notice", t.resetNotice); setText("free-hosting", t.freeHosting); setText("expired-title", t.expired); setText("expired-copy", t.privacy); setText("analysis-intro", t.analysisIntro); setText("error-text", t.error);
         const title = state.phase === "intro" ? t.prayer : state.phase === "questions" ? `${t.question} ${state.current + 1}` : t.completed;
         setText("card-title", title);
         show("intro-view", state.phase === "intro"); show("question-view", state.phase === "questions"); show("result-view", state.phase === "result");
@@ -241,14 +243,15 @@
       function finish() { setExpiry(); state.phase = "result"; render(); }
       function fresh() { reset(false); }
       async function runAI() {
-        $("error").classList.add("hidden"); const buttons = [$("question-ai"), $("result-ai")]; buttons.forEach(button => { button.disabled = true; button.innerHTML = `<span class="spinner"></span>${text[state.lang].analyzing}`; });
+        $("error").classList.add("hidden"); $("question-error").classList.add("hidden"); const buttons = [$("question-ai"), $("result-ai")]; buttons.forEach(button => { button.disabled = true; button.innerHTML = `<span class="spinner"></span>${text[state.lang].analyzing}`; });
         try {
           const response = await fetch(AI_ENDPOINT, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ 0: { json: { answers: state.answers } } }) });
           if (!response.ok) throw new Error("request-failed");
           const payload = await response.json(); const analysis = payload?.[0]?.result?.data?.json?.analysis || payload?.[0]?.result?.data?.analysis;
           if (!analysis) throw new Error("empty-response");
-          state.analysis = analysis; setExpiry(); state.phase = "result"; $("reflection-result").classList.add("hidden"); $("analysis-result").classList.remove("hidden"); setText("card-title", text[state.lang].analysisTitle); $("analysis").innerHTML = escapeHtml(analysis).split(/\n\n+/).filter(Boolean).map(paragraph => `<p>${paragraph.replace(/\n/g, "<br />")}</p>`).join("");
-        } catch (error) { $("error").classList.remove("hidden"); } finally { buttons.forEach(button => { button.disabled = false; button.innerHTML = button.id === "question-ai" ? text[state.lang].ai : text[state.lang].ai; }); }
+          state.analysis = analysis; setExpiry(); state.phase = "result"; $("reflection-result").classList.add("hidden"); $("analysis-result").classList.remove("hidden"); setText("card-title", text[state.lang].analysisTitle); $("analysis").innerHTML = escapeHtml(analysis).split(/\n\n+/).filter(Boolean).map(paragraph => `<p>${paragraph.replace(/\n/g, "  
+")}</p>`).join("");
+        } catch (error) { $("error").classList.remove("hidden"); $("question-error").classList.remove("hidden"); } finally { buttons.forEach(button => { button.disabled = false; button.innerHTML = text[state.lang].ai; }); }
       }
       $("language").addEventListener("change", e => { state.lang = e.target.value; render(); });
       $("begin").addEventListener("click", start); $("fresh").addEventListener("click", fresh); $("analysis-fresh").addEventListener("click", fresh); $("result-ai").addEventListener("click", runAI); $("question-ai").addEventListener("click", runAI);
